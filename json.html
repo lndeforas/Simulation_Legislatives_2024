@@ -1,0 +1,12 @@
+<body>
+    <a href="carte.html">Lien vers la carte</a>
+    <div id="json-info"></div>
+    <script>
+        fetch('coefficients.json')
+            .then(response => response.json())
+            .then(data => {
+                const jsonContent = document.getElementById('json-info');
+                jsonContent.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            });
+    </script>
+</body>

@@ -1,5 +1,6 @@
 // Fonction pour charger le fichier CSV
 function loadCSV(file) {
+    console.log('Loading CSV:', file);
     return fetch(file)
         .then(response => response.text())
         .then(text => {
@@ -14,15 +15,27 @@ function loadGeoJSON(file) {
         .then(response => response.json());
 }
 
+// Fonction pour nettoyer et normaliser les valeurs des chaînes de caractères
+function normalizeString(str) {
+    return str.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
 // Fusionner les données du CSV avec le GeoJSON
 function mergeData(geoData, csvData) {
     const mergedFeatures = geoData.features.map(feature => {
+        const code_dpt = normalizeString(feature.properties.code_dpt);
+        const num_circ = normalizeString(feature.properties.num_circ);
         const circ = csvData.find(c => 
-            c.Département.includes(feature.properties.code_dpt) &&
-            c.Circonscription.includes(feature.properties.num_circ));
+            normalizeString(c.Département).includes(code_dpt) &&
+            normalizeString(c.Circonscription).includes(num_circ) &&
+            c["Elu(e)"] === '1');
         
         if (circ) {
             feature.properties = { ...feature.properties, ...circ };
+            feature.merged = true; // Indicate that this feature was merged
+        } else {
+            feature.merged = false; // Indicate that this feature was not merged
+            console.log('Unmerged feature:', feature.properties); // Log unmerged features
         }
         return feature;
     });
@@ -63,9 +76,9 @@ function displayMap() {
     Promise.all([loadGeoJSON('france-circonscriptions-legislatives-2012.json'), loadCSV('simulation_elections_2024_circonscriptions.csv')])
         .then(([geoData, csvData]) => {
             const mergedData = mergeData(geoData, csvData);
-            const firstThreeFeatures = mergedData.features;
+            const features = mergedData.features;
 
-            L.geoJSON(firstThreeFeatures, {
+            L.geoJSON(features, {
                 style: function (feature) {
                     return {
                         color: getColor(feature),
@@ -77,7 +90,7 @@ function displayMap() {
                                     '<b>Circonscription:</b> ' + feature.properties.num_circ + '<br>' +
                                     '<b>Région:</b> ' + feature.properties.nom_reg + '<br>' +
                                     '<b>Nuance:</b> ' + feature.properties.Nuance + '<br>' +
-                                    '<b>Elu:</b> ' + (feature.properties['Elu(e)'] === '1' ? 'Oui' : 'Non'));
+                                    '<b>Elu:</b> ' + feature.properties['Liste des candidats']);
                 }
             }).addTo(map);
         })

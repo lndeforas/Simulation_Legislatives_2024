@@ -14,8 +14,9 @@
         }
         #map-container {
             flex: 2;
+            position: relative;
         }
-        #info {
+        #info-container {
             flex: 1;
             display: flex;
             flex-direction: column;
@@ -26,11 +27,12 @@
             height: 100%;
             width: 100%;
         }
-        #text-info {
-            flex: 1;
+        #chart-container {
+            height: 40%;
+            padding: 20px;
         }
-        #json-info {
-            flex: 1;
+        #text-info {
+            height: 300px;
             overflow-y: auto;
         }
     </style>
@@ -40,35 +42,32 @@
         <h3>Simulation 2nd Tour Legislatives 2024, by Hélène de Foras</h3>
         <div id="map"></div>
     </div>
-    <div id="info">
+    <div id="info-container">
+        <div id="chart-container">
+            <canvas id="myChart"></canvas>
+        </div>
         <div id="text-info">
             <h3>Informations</h3>
-            <p>Voici des informations supplémentaires sur la carte affichée.</p>
+            <p>Méthode de calcul</p>
+            <p>Outils</p>
             <ul>
                 <li>Webscraping : BeautifulSoup and requests</li>
                 <li>Data Legislatives 1er tour : <a href="https://www.resultats-elections.interieur.gouv.fr/legislatives2024/index.html">https://www.resultats-elections.interieur.gouv.fr/legislatives2024/index.html</a></li>
                 <li>Preprocessing : Pandas</li>
-                <li>Coefficients (ci-dessous) : moi-même, à adapter selon les actualités</li>
+                <li>Coefficients (<a href="json.html">Voir le fichier JSON</a>) : moi-même, à adapter selon les actualités</li>
                 <li>Fond de carte : OpenStreetMap</li>
                 <li>Carte intéractive : Leaflet</li>
                 <li>Circonscriptions : <a href="https://www.data.gouv.fr/fr/datasets/carte-des-circonscriptions-legislatives-2012-et-2017/#/resources">https://www.data.gouv.fr/fr/datasets/carte-des-circonscriptions-legislatives-2012-et-2017/#/resources</a></li>
+                <li>Diagramme circulaire : Chart.js</li>
                 <li>Site web : JS et HTML</li>
                 <li>Hébergement du site : Arise</li>
             </ul>
         </div>
-        <div id="json-info">
-            <script>
-                fetch('coefficients.json')
-                    .then(response => response.json())
-                    .then(data => {
-                        const jsonContent = document.getElementById('json-info');
-                        jsonContent.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
-                    });
-            </script>
-        </div>
     </div>
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="map.js"></script>
+    <script src="chart.js"></script>
 </body>
 </html>
