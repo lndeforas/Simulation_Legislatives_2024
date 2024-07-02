@@ -1,8 +1,4 @@
-# Exemple d'affichage
-![](images/Capture%20d’écran%202024-07-02%20154034.png)
-![](images/Capture%20d’écran%202024-07-02%20154105.png)
-
-### Informations
+## Informations
 
 **Méthode de calcul**
 - Coefficients ([Voir le fichier JSON](json.html)) : à adapter selon les actualités
@@ -19,3 +15,7 @@
 - Diagramme circulaire : Chart.js
 - Site web : JS et HTML
 - Hébergement du site : Arise
+
+## Screenshots du site
+![](images/Capture%20d’écran%202024-07-02%20154034.png)
+![](images/Capture%20d’écran%202024-07-02%20154105.png)
