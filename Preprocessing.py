@@ -15,9 +15,10 @@ class PreprocessingCSV():
         df.loc[df["Elu(e)"] == "QUALIF T2", "Elu(e)"] = 0
         df.loc[df["Elu(e)"] == "NON", "Elu(e)"] = -1
         df["Voix"] = df["Voix"].str.replace('\u202f', '', regex=True).astype(int)
-        df["Circonscription"] = df["Circonscription"].apply(lambda x: x[6:])
+        df["Circonscription"] = df["Circonscription"].apply(lambda x: x[6:]).str.replace(r'\D', '', regex=True)
         self.df = df
-        self.df_ready = self.group_nuance()
+        self.df_nuance = self.group_nuance()
+        self.df_ready = self.desistements()
         df['Circonscription'] = df['Circonscription'].apply(lambda x: "1" if "Saint-Pierre-et-Miquelon" in x else x)
 
     def group_nuance(self):
@@ -38,6 +39,10 @@ class PreprocessingCSV():
                 df.loc[i,"Nuance"]='DIV'
 
         print("Dataframe ready", df["Nuance"].unique())
+        return df
+    
+    def desistements(self):
+        df = self.df_nuance
         return df
 
 

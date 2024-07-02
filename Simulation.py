@@ -31,13 +31,7 @@ def simul(dep, circ):
     elif (df1[df1["Elu(e)"] == 0].shape[0] == 2): # Duel
         modif_coef(partis, ligne, df1, votants)
 
-    elif (df1[df1["Elu(e)"] == 0].shape[0] == 3): # Triangulaire
-        if "NFP" in partis and len(partis)==3 and "RN" in partis:
-            if df1.loc[df1["Nuance"] == "NFP", "Voix"].max() == df1.loc[df1["Elu(e)"]==0, "Voix"].min():
-                partis.remove("NFP")
-        modif_coef(partis, ligne, df1, votants)
-    
-    elif (df1[df1["Elu(e)"] == 0].shape[0] == 4):
+    elif (df1[df1["Elu(e)"] == 0].shape[0] >= 3): # Triangulaire ou quandrangulaire
         modif_coef(partis, ligne, df1, votants)
         
 def modif_coef(partis, ligne, df1, votants):

@@ -25,15 +25,17 @@ function mergeData(geoData, csvData) {
     const mergedFeatures = geoData.features.map(feature => {
         const code_dpt = normalizeString(feature.properties.code_dpt);
         const num_circ = normalizeString(feature.properties.num_circ);
+
         const elected = csvData.find(c => 
             normalizeString(c.Département).includes(code_dpt) &&
-            normalizeString(c.Circonscription).includes(num_circ) &&
+            normalizeString(c.Circonscription) === num_circ &&
             c["Elu(e)"] === '1');
 
         const eliminated = csvData.filter(c => 
             normalizeString(c.Département).includes(code_dpt) &&
-            normalizeString(c.Circonscription).includes(num_circ) &&
+            normalizeString(c.Circonscription) === num_circ &&
             c["Elu(e)"] === '0');
+        
 
         if (elected) {
             feature.properties = { ...feature.properties, ...elected };
