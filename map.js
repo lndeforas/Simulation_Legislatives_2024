@@ -25,16 +25,23 @@ function mergeData(geoData, csvData) {
     const mergedFeatures = geoData.features.map(feature => {
         const code_dpt = normalizeString(feature.properties.code_dpt);
         const num_circ = normalizeString(feature.properties.num_circ);
-        const circ = csvData.find(c => 
+        const elected = csvData.find(c => 
             normalizeString(c.Département).includes(code_dpt) &&
             normalizeString(c.Circonscription).includes(num_circ) &&
             c["Elu(e)"] === '1');
-        
-        if (circ) {
-            feature.properties = { ...feature.properties, ...circ };
-            feature.merged = true; // Indicate that this feature was merged
+
+        const eliminated = csvData.filter(c => 
+            normalizeString(c.Département).includes(code_dpt) &&
+            normalizeString(c.Circonscription).includes(num_circ) &&
+            c["Elu(e)"] === '0');
+
+        if (elected) {
+            feature.properties = { ...feature.properties, ...elected };
+            feature.properties.eliminatedCandidates = eliminated;
+            feature.merged = true; 
         } else {
-            feature.merged = false; // Indicate that this feature was not merged
+            feature.merged = false; 
+            feature.properties.eliminatedCandidates = eliminated;
             console.log('Unmerged feature:', feature.properties); // Log unmerged features
         }
         return feature;
@@ -54,9 +61,9 @@ function getColor(feature) {
             case 'ENS':
                 return '#ff00ff'; // Violet pour ENS
             case 'LR':
-                return '#0000ff'; //Blue
+                return '#0000ff'; // Blue
             case 'DIV':
-                return '#ffff00'; //Yellow
+                return '#ffff00'; // Yellow
             default:
                 return '#ff8c00'; // Default color if no match
         }
@@ -81,16 +88,20 @@ function displayMap() {
             L.geoJSON(features, {
                 style: function (feature) {
                     return {
-                        color: getColor(feature),
-                        weight: 2
+                        color: '#ffffff',
+                        weight: 1,
+                        fillColor: getColor(feature),
+                        fillOpacity: 0.7
                     };
                 },
                 onEachFeature: function (feature, layer) {
+                    let eliminatedCandidates = feature.properties.eliminatedCandidates.map(c => `${c['Liste des candidats']} (${c['Voix']})`).join(', ');
                     layer.bindPopup('<b>Département:</b> ' + feature.properties.nom_dpt + '<br>' +
                                     '<b>Circonscription:</b> ' + feature.properties.num_circ + '<br>' +
                                     '<b>Région:</b> ' + feature.properties.nom_reg + '<br>' +
                                     '<b>Nuance:</b> ' + feature.properties.Nuance + '<br>' +
-                                    '<b>Elu:</b> ' + feature.properties['Liste des candidats']);
+                                    '<b>Elu.e:</b> ' + feature.properties['Liste des candidats'] + ' (' + feature.properties.Voix + ')' + '<br>' +
+                                    '<b>Eliminé.e.s:</b> ' + eliminatedCandidates);
                 }
             }).addTo(map);
         })

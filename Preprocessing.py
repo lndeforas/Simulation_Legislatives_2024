@@ -7,18 +7,6 @@ listes_droite = ['LR', 'DSV', 'DVD']
 listes_exdroite = ['RN', 'EXD', 'UXD', 'REC']
 listes_autres = ['DIV', 'REG']
 
-replacements = {
-    'ZS': '975',
-    'ZN': '988',
-    'ZW': '986',
-    'ZP': '987',
-    'ZD': '974',
-    'ZB': '972',
-    'ZC': '973',
-    'ZM': '976',
-    'ZA': '971'
-}
-
 class PreprocessingCSV():
     def __init__(self, path):
         df = pd.read_csv(path).drop(columns=["% Inscrits"])
@@ -27,8 +15,10 @@ class PreprocessingCSV():
         df.loc[df["Elu(e)"] == "QUALIF T2", "Elu(e)"] = 0
         df.loc[df["Elu(e)"] == "NON", "Elu(e)"] = -1
         df["Voix"] = df["Voix"].str.replace('\u202f', '', regex=True).astype(int)
+        df["Circonscription"] = df["Circonscription"].apply(lambda x: x[6:])
         self.df = df
         self.df_ready = self.group_nuance()
+        df['Circonscription'] = df['Circonscription'].apply(lambda x: "1" if "Saint-Pierre-et-Miquelon" in x else x)
 
     def group_nuance(self):
         df = self.df
@@ -49,24 +39,35 @@ class PreprocessingCSV():
 
         print("Dataframe ready", df["Nuance"].unique())
         return df
-    
+
+
+replacements = {
+    'ZS': '975',
+    'ZN': '988',
+    'ZW': '986',
+    'ZP': '987',
+    'ZD': '974',
+    'ZB': '972',
+    'ZC': '973',
+    'ZM': '976',
+    'ZA': '971'
+}
+
 class PreprocessingJSON():
     def __init__(self, path):
-        file = open(path)
-        self.data = json.load(file)
+        # Lire le fichier JSON comme du texte brut
+        with open(path, 'r', encoding='utf-8') as file:
+            self.data = file.read()
+        
+        # Remplacer les valeurs
         self.data_ready = self.replace_values(self.data, replacements)
-        new_file = open('france-circonscriptions-legislatives-2012.json', 'w', encoding='utf-8')
-        json.dump(self.data_ready, new_file, ensure_ascii=False, indent=4)
+        
+        # Enregistrer les nouvelles données dans un fichier
+        with open('france-circonscriptions-legislatives-2012.json', 'w', encoding='utf-8') as new_file:
+            new_file.write(self.data_ready)
 
-    def replace_values(self, obj, replacements):
-        if isinstance(obj, dict):
-            for key in obj:
-                if isinstance(obj[key], str):
-                    for old, new in replacements.items():
-                        obj[key] = obj[key].replace(old, new)
-        elif isinstance(obj, list):
-            for i in range(len(obj)):
-                if isinstance(obj[i], str):
-                    for old, new in replacements.items():
-                        obj[i] = obj[i].replace(old, new)
-        return obj
+    def replace_values(self, text, replacements):
+        # Remplacer les chaînes de caractères spécifiées
+        for old, new in replacements.items():
+            text = text.replace(old, new)
+        return text
