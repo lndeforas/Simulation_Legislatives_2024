@@ -43,7 +43,7 @@ def calcul_voix(partis, ligne, df1):
             for k, v in coeffs.items():
                 tot_voix += v * df1[df1["Nuance"] == k]["Voix"].sum()
             df2.loc[ligne & (df2["Nuance"] == parti), "Voix"] = int(tot_voix)
-            df2.loc[df2.loc[ligne, "Voix"].idxmax(), "Elu(e)"] = 1
+        df2.loc[df2.loc[ligne, "Voix"].idxmax(), "Elu(e)"] = 1
     else:
         print(partis, dep, circ)
         print("Combinaison non disponible")
