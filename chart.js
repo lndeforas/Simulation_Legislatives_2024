@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Fonction pour charger le fichier CSV
+    // Charger le fichier CSV qui contient la simulation des resultats
     function loadCSV(file) {
         return fetch(file)
             .then(response => response.text())
@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    // Créer le graphique
+    // Créer le graphique des résultats à l'échelle de la France entière
     function createChart(csvData) {
         const nuanceCounts = csvData.reduce((acc, row) => {
             if (row["Elu(e)"] === '1') {
@@ -49,7 +49,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Charger et afficher les données CSV
     loadCSV('simulation_elections_2024_circonscriptions.csv')
         .then(createChart)
         .catch(error => {

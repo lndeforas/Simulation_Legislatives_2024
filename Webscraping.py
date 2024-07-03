@@ -2,7 +2,6 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 
-# URL de la page principale
 base_url = f"https://www.resultats-elections.interieur.gouv.fr/legislatives2024/ensemble_geographique/index.html"
 
 # Fonction pour récupérer les données d'une circonscription
@@ -10,7 +9,6 @@ def get_circonscription_data(circonscription_url):
     response = requests.get(circonscription_url)
     soup = BeautifulSoup(response.content, 'html.parser')
     
-    # Extraire les résultats des tableaux (à adapter en fonction de la structure HTML)
     tables = soup.find_all('table')
     
     # La première table est celle des résultats
@@ -26,12 +24,11 @@ def get_circonscription_data(circonscription_url):
     
     return headers, data
 
-# Fonction pour récupérer les données d'un département
+# Fonction pour récupérer les circonscriptions d'un département
 def get_department_data(department_url):
     response = requests.get(department_url)
     soup = BeautifulSoup(response.content, 'html.parser')
     
-    # Récupérer les options du menu déroulant des circonscriptions
     select = soup.find('select', {'id': 'selectCir'})
     options = select.find_all('option')
     
@@ -43,7 +40,7 @@ def get_department_data(department_url):
             print(f"  Collecting data for circonscription {circ_name}")
             headers, data = get_circonscription_data(circ_url)
             for row in data:
-                row.insert(0, circ_name)  # Ajouter le nom de la circonscription dans chaque ligne
+                row.insert(0, circ_name)
             department_data.extend(data)
     
     return headers, department_data
@@ -67,14 +64,12 @@ for department, dept_url in departments.items():
     print(f"Collecting data for {department}")
     headers, data = get_department_data(dept_url)
     for row in data:
-        row.insert(0, department)  # Ajouter le nom du département dans chaque ligne
+        row.insert(0, department) 
     all_data.extend(data)
 
-# Convertir les données en DataFrame pandas
 columns = ["Département", "Circonscription"] + headers
 df = pd.DataFrame(all_data, columns=columns)
 
-# Enregistrer les données dans un fichier CSV
 df.to_csv(f'resultats_elections_2024_circonscriptions.csv', index=False, encoding='utf-8')
 
 print(f"Données sauvegardées dans 'resultats_elections_2024_circonscriptions.csv'")

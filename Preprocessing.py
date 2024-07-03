@@ -11,19 +11,25 @@ class PreprocessingCSV():
     def __init__(self, path):
         df = pd.read_csv(path).drop(columns=["% Inscrits"])
         df["% Exprimés"] = df["% Exprimés"].str.replace(',', '.').astype(float)
+
+        # 1 si élu au 1er tour, 0 si qualifié pour le second, -1 si non qualifié ou désisté
         df.loc[df["Elu(e)"] == "OUI", "Elu(e)"] = 1
         df.loc[df["Elu(e)"] == "QUALIF T2", "Elu(e)"] = 0
         df.loc[df["Elu(e)"] == "NON", "Elu(e)"] = -1
+
         df["Voix"] = df["Voix"].str.replace('\u202f', '', regex=True).astype(int)
+        
+        # Saint-Pierre-et-Miquelon n'a pas le même format
+        df['Circonscription'] = df['Circonscription'].apply(lambda x: "Saint-Pierre 1" if "Saint-Pierre-et-Miquelon" in x else x)
         df["Circonscription"] = df["Circonscription"].apply(lambda x: x[6:]).str.replace(r'\D', '', regex=True)
+
         self.df = df
         self.df_nuance = self.group_nuance()
         self.df_ready = self.desistements()
-        df['Circonscription'] = df['Circonscription'].apply(lambda x: "1" if "Saint-Pierre-et-Miquelon" in x else x)
 
     def group_nuance(self):
+        # Regrouper les nuances politiques en 5 groupes
         df = self.df
-
         nb_lines = df.shape[0]
 
         for i in range(nb_lines):
@@ -42,6 +48,7 @@ class PreprocessingCSV():
         return df
     
     def desistements(self):
+        # Ajouter dans la df tous les désistements
         df = self.df_nuance
         df.loc[df["Liste des candidats"] == "M. Sébastien GUERAUD", "Elu(e)"] = -1
         df.loc[df["Liste des candidats"] == "M. Maxime MEYER", "Elu(e)"] = -1
@@ -281,19 +288,64 @@ replacements = {
 
 class PreprocessingJSON():
     def __init__(self, path):
-        # Lire le fichier JSON comme du texte brut
         with open(path, 'r', encoding='utf-8') as file:
             self.data = file.read()
         
-        # Remplacer les valeurs
-        self.data_ready = self.replace_values(self.data, replacements)
+        self.data_dom = self.replace_values(self.data, replacements)
+        self.data_ready = self.add_figures_etrangers(self.data_dom)
         
-        # Enregistrer les nouvelles données dans un fichier
         with open('france-circonscriptions-legislatives-2012.json', 'w', encoding='utf-8') as new_file:
             new_file.write(self.data_ready)
 
     def replace_values(self, text, replacements):
-        # Remplacer les chaînes de caractères spécifiées
+        # Mettre les mêmes noms de départements pour les DOM
         for old, new in replacements.items():
             text = text.replace(old, new)
         return text
+    
+    def add_figures_etrangers(self, data):
+        # Ajouter des rectangles pour les Français à l'étranger
+        geojson = json.loads(data)
+
+        rectangles = [
+            self.create_rectangle("ZZ01", "Amérique du Nord", [-100, 40], [-90, 30], "1"),
+            self.create_rectangle("ZZ02", "Amérique du Sud", [-70, -10], [-60, -20], "2"),
+            self.create_rectangle("ZZ03", "Europe du Nord", [0, 60], [10, 55], "3"),
+            self.create_rectangle("ZZ04", "Benelux", [3, 55], [7, 51], "4"),
+            self.create_rectangle("ZZ05", "Espagne", [-5, 42], [0, 37], "5"),
+            self.create_rectangle("ZZ06", "Suisse", [8, 47], [10, 45], "6"),
+            self.create_rectangle("ZZ07", "Europe de l'Est", [20, 50], [30, 45], "7"),
+            self.create_rectangle("ZZ08", "Europe du Sud", [20, 40], [30, 35], "8"),
+            self.create_rectangle("ZZ09", "Afrique du Nord", [0, 35], [10, 25], "9"),
+            self.create_rectangle("ZZ10", "Afrique et Arabie", [20, 20], [30, 10], "10"),
+            self.create_rectangle("ZZ11", "Asie et Océanie", [100, 20], [120, 0], "11")
+        ]
+
+        geojson['features'].extend(rectangles)
+
+        return json.dumps(geojson, indent=4)
+    
+    def create_rectangle(self, id, name, top_left, bottom_right, circ):
+        # créer un rectangle au format GeoJSON
+        feature = {
+            "type": "Feature",
+            "properties": {
+                "ID": id,
+                "code_dpt": "ZZ",
+                "nom_dpt": name,
+                "nom_reg": "ETRANGER",
+                "num_circ": circ,
+                "code_reg": "99"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    top_left,
+                    [top_left[0], bottom_right[1]],
+                    bottom_right,
+                    [bottom_right[0], top_left[1]],
+                    top_left
+                ]]
+            }
+        }
+        return feature

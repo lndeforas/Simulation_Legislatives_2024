@@ -1,4 +1,4 @@
-// Fonction pour charger le fichier CSV
+// Fonction pour charger le fichier CSV qui contient la simulation des résultats
 function loadCSV(file) {
     console.log('Loading CSV:', file);
     return fetch(file)
@@ -9,7 +9,7 @@ function loadCSV(file) {
         });
 }
 
-// Fonction pour charger le fichier GeoJSON
+// Fonction pour charger le fichier GeoJSON qui contient les coordonnées des circonscriptions
 function loadGeoJSON(file) {
     return fetch(file)
         .then(response => response.json());
@@ -20,7 +20,7 @@ function normalizeString(str) {
     return str.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-// Fusionner les données du CSV avec le GeoJSON
+// Fusionner les données du CSV avec le GeoJSON, en utilisant le département et la circonscription comme clé
 function mergeData(geoData, csvData) {
     const mergedFeatures = geoData.features.map(feature => {
         const code_dpt = normalizeString(feature.properties.code_dpt);
@@ -36,7 +36,6 @@ function mergeData(geoData, csvData) {
             normalizeString(c.Circonscription) === num_circ &&
             c["Elu(e)"] === '0');
         
-
         if (elected) {
             feature.properties = { ...feature.properties, ...elected };
             feature.properties.eliminatedCandidates = eliminated;
@@ -63,14 +62,14 @@ function getColor(feature) {
             case 'ENS':
                 return '#ff00ff'; // Violet pour ENS
             case 'LR':
-                return '#0000ff'; // Blue
+                return '#0000ff'; // Bleu pour LR
             case 'DIV':
-                return '#ffff00'; // Yellow
+                return '#ffff00'; // Jaune pour DIV
             default:
-                return '#ff8c00'; // Default color if no match
+                return '#ff8c00'; // Orange pour dafault
         }
     } else {
-        return '#ffffff'; // Default color if not elected
+        return '#ffffff'; // Bnalc si on n'a pas de résultat
     }
 }
 
