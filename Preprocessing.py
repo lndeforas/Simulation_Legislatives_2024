@@ -26,6 +26,7 @@ class PreprocessingCSV():
         self.df = df
         self.df_nuance = self.group_nuance()
         self.df_ready = self.desistements()
+        self.df_ready.to_csv(f'resultats_1_elections_2024_circonscriptions.csv', index=False, encoding='utf-8')
 
     def group_nuance(self):
         # Regrouper les nuances politiques en 5 groupes

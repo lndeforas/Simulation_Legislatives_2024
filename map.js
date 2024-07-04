@@ -1,4 +1,4 @@
-// Fonction pour charger le fichier CSV qui contient la simulation des résultats
+// Fonction pour charger le fichier CSV qui contient les résultats
 function loadCSV(file) {
     console.log('Loading CSV:', file);
     return fetch(file)
@@ -26,23 +26,27 @@ function mergeData(geoData, csvData) {
         const code_dpt = normalizeString(feature.properties.code_dpt);
         const num_circ = normalizeString(feature.properties.num_circ);
 
-        const elected = csvData.find(c => 
+        const candidates = csvData.filter(c => 
             normalizeString(c.Département).includes(code_dpt) &&
-            normalizeString(c.Circonscription) === num_circ &&
-            c["Elu(e)"] === '1');
+            normalizeString(c.Circonscription) === num_circ);
 
-        const eliminated = csvData.filter(c => 
-            normalizeString(c.Département).includes(code_dpt) &&
-            normalizeString(c.Circonscription) === num_circ &&
-            c["Elu(e)"] === '0');
-        
-        if (elected) {
-            feature.properties = { ...feature.properties, ...elected };
-            feature.properties.eliminatedCandidates = eliminated;
-            feature.merged = true; 
+        if (candidates.length > 0) {
+            const elected = candidates.find(c => c["Elu(e)"] === '1');
+            const topCandidate = candidates.reduce((prev, current) => (parseFloat(prev.Voix) > parseFloat(current.Voix)) ? prev : current);
+            feature.properties.candidates = candidates.filter(c => c !== topCandidate);;
+
+            if (elected) {
+                feature.properties = { ...feature.properties, ...elected };
+                feature.properties.elu = true;
+            } else {
+                feature.properties = { ...feature.properties, ...topCandidate };
+                feature.properties.elu = false;
+            }
+
+            feature.merged = true;
         } else {
-            feature.merged = false; 
-            feature.properties.eliminatedCandidates = eliminated;
+            feature.merged = false;
+            feature.properties.candidates = [];
             console.log('Unmerged feature:', feature.properties); // Log unmerged features
         }
         return feature;
@@ -51,27 +55,25 @@ function mergeData(geoData, csvData) {
     return { ...geoData, features: mergedFeatures };
 }
 
-// Définir les couleurs en fonction de la nuance et de l'état élu
+// Définir les couleurs en fonction de la nuance du candidat élu ou du candidat avec le plus de voix
 function getColor(feature) {
-    if (feature.properties['Elu(e)'] === '1') {
-        switch (feature.properties.Nuance) {
-            case 'RN':
-                return '#000000'; // Black pour RN
-            case 'NFP':
-                return '#ff0000'; // Rouge pour NFP
-            case 'ENS':
-                return '#ff00ff'; // Violet pour ENS
-            case 'LR':
-                return '#0000ff'; // Bleu pour LR
-            case 'DIV':
-                return '#ffff00'; // Jaune pour DIV
-            default:
-                return '#ff8c00'; // Orange pour dafault
-        }
-    } else {
-        return '#ffffff'; // Bnalc si on n'a pas de résultat
+    switch (feature.properties.Nuance) {
+        case 'RN':
+            return '#000000'; // Black pour RN
+        case 'NFP':
+            return '#ff0000'; // Rouge pour NFP
+        case 'ENS':
+            return '#ff00ff'; // Violet pour ENS
+        case 'LR':
+            return '#0000ff'; // Bleu pour LR
+        case 'DIV':
+            return '#ffff00'; // Jaune pour DIV
+        default:
+            return '#ff8c00'; // Orange pour default
     }
 }
+
+let geojsonLayer; // Variable pour stocker la couche GeoJSON
 
 // Charger et afficher les données sur la carte
 function displayMap() {
@@ -81,12 +83,33 @@ function displayMap() {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
-    Promise.all([loadGeoJSON('france-circonscriptions-legislatives-2012.json'), loadCSV('simulation_elections_2024_circonscriptions.csv')])
+    document.getElementById('simulation').addEventListener('change', function() {
+        if (this.checked) {
+            loadDataAndDisplay('simulation_elections_2024_circonscriptions.csv', map);
+        }
+    });
+
+    document.getElementById('results1').addEventListener('change', function() {
+        if (this.checked) {
+            loadDataAndDisplay('resultats_1_elections_2024_circonscriptions.csv', map);
+        }
+    });
+
+    loadDataAndDisplay('simulation_elections_2024_circonscriptions.csv', map);
+}
+
+// Fonction pour charger les données et les afficher sur la carte
+function loadDataAndDisplay(csvFile, map) {
+    Promise.all([loadGeoJSON('france-circonscriptions-legislatives-2012.json'), loadCSV(csvFile)])
         .then(([geoData, csvData]) => {
             const mergedData = mergeData(geoData, csvData);
             const features = mergedData.features;
 
-            L.geoJSON(features, {
+            if (geojsonLayer) {
+                map.removeLayer(geojsonLayer); // Retirer la couche GeoJSON existante
+            }
+
+            geojsonLayer = L.geoJSON(features, {
                 style: function (feature) {
                     return {
                         color: '#ffffff',
@@ -96,13 +119,21 @@ function displayMap() {
                     };
                 },
                 onEachFeature: function (feature, layer) {
-                    let eliminatedCandidates = feature.properties.eliminatedCandidates.map(c => `${c['Liste des candidats']} (${c['Voix']})`).join(', ');
-                    layer.bindPopup('<b>Département:</b> ' + feature.properties.nom_dpt + '<br>' +
-                                    '<b>Circonscription:</b> ' + feature.properties.num_circ + '<br>' +
-                                    '<b>Région:</b> ' + feature.properties.nom_reg + '<br>' +
-                                    '<b>Nuance:</b> ' + feature.properties.Nuance + '<br>' +
-                                    '<b>Elu.e:</b> ' + feature.properties['Liste des candidats'] + ' (' + feature.properties.Voix + ')' + '<br>' +
-                                    '<b>Eliminé.e.s:</b> ' + eliminatedCandidates);
+                    let candidatesInfo = feature.properties.candidates.map(c => `${c['Liste des candidats']} (${c['Voix']})`).join(', ');
+                    let popupContent = '<b>Département:</b> ' + feature.properties.nom_dpt + '<br>' +
+                                       '<b>Circonscription:</b> ' + feature.properties.num_circ + '<br>' +
+                                       '<b>Région:</b> ' + feature.properties.nom_reg + '<br>' +
+                                       '<b>Nuance:</b> ' + feature.properties.Nuance + '<br>';
+
+                    if (feature.properties.elu) {
+                        popupContent += '<b>Elu.e:</b> ' + feature.properties['Liste des candidats'] + ' (' + feature.properties.Voix + ')<br>';
+                        popupContent += '<b>Candidats:</b> ' + candidatesInfo + '<br>';
+                    } else {
+                        popupContent += '<b>Candidat en tête:</b> ' + feature.properties['Liste des candidats'] + ' (' + feature.properties.Voix + ')<br>';
+                        popupContent += '<b>Candidats:</b> ' + candidatesInfo + '<br>';
+                    }
+
+                    layer.bindPopup(popupContent);
                 }
             }).addTo(map);
         })
